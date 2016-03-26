@@ -1354,8 +1354,11 @@ void MGPCG(mg_type *all_grids, int onLevel, int x_id, int F_id, double a, double
     double Ap_dot_p = dot(level,Ap_id,p_id);                                    //   Ap_dot_p = dot(Ap,p)
     if(Ap_dot_p == 0.0){CGFailed=1;break;}                                      //   pivot breakdown ???
     double alpha = r_dot_z / Ap_dot_p;                                          //   alpha = r_dot_z / Ap_dot_p
-    /* if(std::isinf(alpha)){CGFailed=1;break;}                                         //   ??? */
+#ifdef USE_AGENCY
+    if(std::isinf(alpha)){CGFailed=1;break;}                                         //   ???
+#else
     if(isinf(alpha)){CGFailed=1;break;}                                         //   ???
+#endif
     add_vectors(level,x_id,1.0,x_id, alpha,p_id );                              //   x_id[] = x_id[] + alpha*p[]
     add_vectors(level,r_id,1.0,r_id,-alpha,Ap_id);                              //   r[]    = r[]    - alpha*Ap[]   (intermediate residual?)
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1379,8 +1382,11 @@ void MGPCG(mg_type *all_grids, int onLevel, int x_id, int F_id, double a, double
     double r_dot_z_new = dot(level,r_id,z_id);                                  //   r_dot_z_new = dot(r_{j+1},z_{j+1})
     if(r_dot_z_new == 0.0){CGFailed=1;break;}                                   //   Lanczos breakdown ???
     double beta = (r_dot_z_new/r_dot_z);                                        //   beta = (r_dot_z_new/r_dot_z)
-    /* if(std::isinf(beta)){CGFailed=1;break;}                                          //   ??? */
+#ifdef USE_AGENCY
+    if(std::isinf(beta)){CGFailed=1;break;}                                          //   ???
+#else
     if(isinf(beta)){CGFailed=1;break;}                                          //   ???
+#endif
     add_vectors(level,p_id,1.0,z_id,beta,p_id );                                //   p[] = z[] + beta*p[]
     r_dot_z = r_dot_z_new;                                                      //   r_dot_r = r_dot_r_new   (save old r_dot_r)
     // FIX... need to test for stalled convergence...

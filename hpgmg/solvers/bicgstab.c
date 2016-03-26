@@ -51,8 +51,11 @@ void BiCGStab(level_type * level, int x_id, int R_id, double a, double b, double
     double Ap_dot_r0 = dot(level,Ap_id,r0_id);                                  //   Ap_dot_r0 = dot(Ap,r0)
     if(Ap_dot_r0 == 0.0){BiCGStabFailed=1;break;}                               //   pivot breakdown ???
     double alpha = r_dot_r0 / Ap_dot_r0;                                        //   alpha = r_dot_r0 / Ap_dot_r0
-    /* if(std::isinf(alpha)){BiCGStabFailed=2;break;}                                   //   pivot breakdown ??? */
+#ifdef USE_AGENCY
+    if(std::isinf(alpha)){BiCGStabFailed=2;break;}                                   //   pivot breakdown ???
+#else
     if(isinf(alpha)){BiCGStabFailed=2;break;}                                   //   pivot breakdown ???
+#endif
     add_vectors(level,x_id,1.0,x_id, alpha, q_id);                              //   x_id[] = x_id[] + alpha*q[]
     add_vectors(level,s_id,1.0,r_id,-alpha,Ap_id);                              //   s[]    = r[]    - alpha*Ap[]   (intermediate residual?)
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -75,8 +78,11 @@ void BiCGStab(level_type * level, int x_id, int R_id, double a, double b, double
     if(As_dot_As == 0.0){BiCGStabConverged=1;break;}                            //   converged ?
     double omega = As_dot_s / As_dot_As;                                        //   omega = As_dot_s / As_dot_As
     if(omega == 0.0){BiCGStabFailed=3;break;}                                   //   stabilization breakdown ???
-    /* if(std::isinf(omega)){BiCGStabFailed=4;break;}                                   //   stabilization breakdown ??? */
+#ifdef USE_AGENCY
+    if(std::isinf(omega)){BiCGStabFailed=4;break;}                                   //   stabilization breakdown ???
+#else
     if(isinf(omega)){BiCGStabFailed=4;break;}                                   //   stabilization breakdown ???
+#endif
     add_vectors(level,x_id,1.0,x_id, omega, t_id);                              //   x_id[] = x_id[] + omega*t[]
     add_vectors(level,r_id,1.0,s_id,-omega,As_id);                              //   r[]    = s[]    - omega*As[]  (recursively computed / updated residual)
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -91,8 +97,11 @@ void BiCGStab(level_type * level, int x_id, int R_id, double a, double b, double
     double r_dot_r0_new = dot(level,r_id,r0_id);                                //   r_dot_r0_new = dot(r,r0)
     if(r_dot_r0_new == 0.0){BiCGStabFailed=5;break;}                            //   Lanczos breakdown ???
     double beta = (r_dot_r0_new/r_dot_r0) * (alpha/omega);                      //   beta = (r_dot_r0_new/r_dot_r0) * (alpha/omega)
-    /* if(std::isinf(beta)){BiCGStabFailed=6;break;}                                    //   ??? */
+#ifdef USE_AGENCY
+    if(std::isinf(beta)){BiCGStabFailed=6;break;}                                    //   ???
+#else
     if(isinf(beta)){BiCGStabFailed=6;break;}                                    //   ???
+#endif
     add_vectors(level,VECTOR_TEMP,1.0,p_id,-omega,      Ap_id);                 //   VECTOR_TEMP = (p[]-omega*Ap[])
     add_vectors(level,       p_id,1.0,r_id,  beta,VECTOR_TEMP);                 //   p[] = r[] + beta*(p[]-omega*Ap[])
     r_dot_r0 = r_dot_r0_new;                                                    //   r_dot_r0 = r_dot_r0_new   (save old r_dot_r0)

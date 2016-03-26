@@ -288,8 +288,20 @@ double dot(level_type * level, int id_a, int id_b){
   int block;
   double a_dot_b_level =  0.0;
 
+#ifdef USE_AGENCY
+  auto partial_sums = agency::bulk_invoke(agency::par(agency::par.executor().shape()), [&](agency::parallel_agent& self){
+    size_t tile_size = level->num_my_blocks / self.group_size();
+    size_t tile_rem  = level->num_my_blocks % self.group_size();
+    int begin        = self.index() * tile_size;
+    int end          = begin + tile_size;
+    begin           += std::min(self.index() + 0, tile_rem);
+    end             += std::min(self.index() + 1, tile_rem);
+    double block_total = 0;
+    for(block=begin;block<end;block++){
+#else
   PRAGMA_THREAD_ACROSS_BLOCKS_SUM(level,block,level->num_my_blocks,a_dot_b_level)
   for(block=0;block<level->num_my_blocks;block++){
+#endif
     const int box = level->my_blocks[block].read.box;
     const int ilo = level->my_blocks[block].read.i;
     const int jlo = level->my_blocks[block].read.j;
@@ -311,8 +323,16 @@ double dot(level_type * level, int id_a, int id_b){
       int ijk = i + j*jStride + k*kStride;
       a_dot_b_block += grid_a[ijk]*grid_b[ijk];
     }}}
-    a_dot_b_level+=a_dot_b_block;
+#ifdef USE_AGENCY
+    block_total += a_dot_b_block;
+    }
+    return block_total;
+  }); // boxes
+  a_dot_b_level = std::accumulate(partial_sums.begin(), partial_sums.end(), double(0), std::plus<double>());
+#else
+  a_dot_b_level+=a_dot_b_block;
   }
+#endif
   level->timers.blas1 += (double)(getTime()-_timeStart);
 
   #ifdef USE_MPI
@@ -335,8 +355,20 @@ double norm(level_type * level, int id_a){ // implements the max norm
   int block;
   double max_norm =  0.0;
 
+#ifdef USE_AGENCY
+  auto partial_maxs = agency::bulk_invoke(agency::par(agency::par.executor().shape()), [&](agency::parallel_agent& self){
+    size_t tile_size = level->num_my_blocks / self.group_size();
+    size_t tile_rem  = level->num_my_blocks % self.group_size();
+    int begin        = self.index() * tile_size;
+    int end          = begin + tile_size;
+    begin           += std::min(self.index() + 0, tile_rem);
+    end             += std::min(self.index() + 1, tile_rem);
+    double max_block = 0.0;
+    for(block=begin;block<end;block++){
+#else
   PRAGMA_THREAD_ACROSS_BLOCKS_MAX(level,block,level->num_my_blocks,max_norm)
   for(block=0;block<level->num_my_blocks;block++){
+#endif
     const int box = level->my_blocks[block].read.box;
     const int ilo = level->my_blocks[block].read.i;
     const int jlo = level->my_blocks[block].read.j;
@@ -359,8 +391,16 @@ double norm(level_type * level, int id_a){ // implements the max norm
       if(fabs_grid_ijk>block_norm){block_norm=fabs_grid_ijk;} // max norm
     }}}
 
+#ifdef USE_AGENCY
+    if(block_norm>max_block){max_block = block_norm;}
+    }
+    return max_block;
+  }); // boxes
+  max_norm = *std::max_element(partial_maxs.begin(), partial_maxs.end());
+#else
     if(block_norm>max_norm){max_norm = block_norm;}
   } // block list
+#endif
   level->timers.blas1 += (double)(getTime()-_timeStart);
 
   #ifdef USE_MPI
@@ -385,8 +425,20 @@ double mean(level_type * level, int id_a){
   int block;
   double sum_level =  0.0;
 
+#ifdef USE_AGENCY
+  auto partial_sums = agency::bulk_invoke(agency::par(agency::par.executor().shape()), [&](agency::parallel_agent& self){
+    size_t tile_size = level->num_my_blocks / self.group_size();
+    size_t tile_rem  = level->num_my_blocks % self.group_size();
+    int begin        = self.index() * tile_size;
+    int end          = begin + tile_size;
+    begin           += std::min(self.index() + 0, tile_rem);
+    end             += std::min(self.index() + 1, tile_rem);
+    double block_total = 0;
+    for(block=begin;block<end;block++){
+#else
   PRAGMA_THREAD_ACROSS_BLOCKS_SUM(level,block,level->num_my_blocks,sum_level)
   for(block=0;block<level->num_my_blocks;block++){
+#endif
     const int box = level->my_blocks[block].read.box;
     const int ilo = level->my_blocks[block].read.i;
     const int jlo = level->my_blocks[block].read.j;
@@ -407,8 +459,16 @@ double mean(level_type * level, int id_a){
       int ijk = i + j*jStride + k*kStride;
       sum_block += grid_a[ijk];
     }}}
+#ifdef USE_AGENCY
+    block_total += sum_block;
+    }
+    return block_total;
+  }); // boxes
+    sum_level = std::accumulate(partial_sums.begin(), partial_sums.end(), double(0), std::plus<double>());
+#else
     sum_level+=sum_block;
   }
+#endif
   level->timers.blas1 += (double)(getTime()-_timeStart);
   double ncells_level = (double)level->dim.i*(double)level->dim.j*(double)level->dim.k;
 
