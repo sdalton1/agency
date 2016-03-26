@@ -1,0 +1,42 @@
+import os
+
+# command line variables
+vars = Variables()
+vars.Add('CC', 'compiler', 'gcc')
+vars.Add('CXX', 'compiler', 'gcc')
+vars.Add(EnumVariable('method', None, 'agency', allowed_values=('agency', 'openmp')), help='Parallel method')
+
+env = Environment(variables = vars)
+env.MergeFlags(['-std=c++11', '-Ofast'])
+env.Append(CPPFLAGS = ['-DUSE_GSRB=1', '-DUSE_FCYCLES=1', '-DUSE_BICGSTAB=1'])
+env.Append(LIBS     = ['m','stdc++'])
+
+if env['method'] == 'agency':
+  env.Append(CPPPATH  = ['..'])
+  env.Append(CPPFLAGS = ['-DUSE_AGENCY'])
+  env.Append(LIBS     = ['pthread'])
+else:
+  env.Append(CPPFLAGS = ['-fopenmp'])
+  env.Append(LIBS     = ['gomp'])
+
+Help(vars.GenerateHelpText(env))
+
+# find all sources in the current directory
+directories = ['.']
+extensions = ['.cpp']
+sources = []
+
+for dir in directories:
+  for ext in extensions:
+    regex = os.path.join(dir, '*' + ext)
+    sources.extend(env.Glob(regex))
+
+# create a test program for each source
+tests = []
+for src in sources:
+  test = env.Program(src)
+  # add the test to the 'run_tests' alias
+  test_alias = env.Alias('run_tests', [test], test[0].abspath)
+  # always build the 'run_tests' target whether or not it needs it
+  env.AlwaysBuild(test_alias)
+
