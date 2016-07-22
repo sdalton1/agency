@@ -1,6 +1,6 @@
 #pragma once
 
-#include <agency/execution_policy.hpp>
+#include <agency/agency.hpp>
 #include "omp_executor.h"
 
 template<class Size, class Function>

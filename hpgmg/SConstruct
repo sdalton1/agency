@@ -12,7 +12,7 @@ env.Append(LIBS       = ['m','stdc++', 'gomp'])
 
 if env['method'] == 'agency':
   env.Append(CPPPATH    = ['..'])
-  env.Append(CPPFLAGS   = ['-std=c++11'])
+  env.Append(CPPFLAGS   = ['-std=c++14'])
   env.Append(CPPDEFINES = ['USE_AGENCY'])
   env.Append(LIBS       = ['pthread'])
 
