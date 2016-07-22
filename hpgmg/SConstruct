@@ -3,17 +3,20 @@ import os
 # command line variables
 vars = Variables()
 vars.Add('CXX', 'compiler', 'gcc-5')
-vars.Add(EnumVariable('method', None, 'agency', allowed_values=('agency', 'openmp')), help='Parallel method')
+vars.Add(EnumVariable('method', None, 'agency', allowed_values=('agency', 'agency-openmp', 'openmp')), help='Parallel method')
 
 env = Environment(variables = vars)
 env.Append(CPPFLAGS   = ['-Ofast', '-fopenmp'])
 env.Append(CPPDEFINES = ['USE_GSRB=1', 'USE_FCYCLES=1', 'USE_BICGSTAB=1'])
 env.Append(LIBS       = ['m','stdc++', 'gomp'])
+env.Append(CPPPATH    = ['..'])
+env.Append(CPPFLAGS   = ['-std=c++14'])
 
 if env['method'] == 'agency':
-  env.Append(CPPPATH    = ['..'])
-  env.Append(CPPFLAGS   = ['-std=c++14'])
   env.Append(CPPDEFINES = ['USE_AGENCY'])
+  env.Append(LIBS       = ['pthread'])
+elif env['method'] == 'agency-openmp':
+  env.Append(CPPDEFINES = ['USE_AGENCY_OMP_EXECUTOR'])
   env.Append(LIBS       = ['pthread'])
 
 Help(vars.GenerateHelpText(env))
