@@ -3,7 +3,7 @@
 #include <agency/detail/config.hpp>
 #include <agency/detail/index_cast.hpp>
 #include <agency/detail/shape_cast.hpp>
-#include <agency/detail/swap.hpp>
+#include <agency/detail/utility.hpp>
 #include <agency/detail/memory/allocator_traits.hpp>
 #include <utility>
 #include <memory>
@@ -30,14 +30,14 @@ class array
 
     using index_type = Index;
 
-    // note that array's constructors have __agency_hd_warning_disable__
+    // note that array's constructors have __agency_exec_check_disable__
     // because Alloc's constructors may not have __AGENCY_ANNOTATION
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     array() : alloc_{}, shape_{}, data_(nullptr) {}
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit array(const shape_type& shape, const allocator_type& alloc = allocator_type())
       : alloc_(allocator_type()),
@@ -46,7 +46,7 @@ class array
     {
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     explicit array(const shape_type& shape, const T& val, const allocator_type& alloc = allocator_type())
       : alloc_(alloc),
@@ -55,7 +55,7 @@ class array
     {
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Iterator,
              class = typename std::enable_if<
                !std::is_convertible<Iterator,shape_type>::value
@@ -70,7 +70,7 @@ class array
       }
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     array(const array& other)
       : array(other.shape())
@@ -84,7 +84,7 @@ class array
       }
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     array(array&& other)
       : alloc_{}, shape_{}, data_{}
@@ -92,7 +92,7 @@ class array
       swap(other);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     ~array()
     {
@@ -190,7 +190,7 @@ class array
       return end();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     void clear()
     {
@@ -208,11 +208,42 @@ class array
       }
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Range>
     __AGENCY_ANNOTATION
-    bool operator==(const Range& rhs) const
+    friend bool operator==(const array& lhs, const Range& rhs)
     {
+      if(lhs.size() != rhs.size()) return false;
+
+      auto i = lhs.begin();
+      auto j = rhs.begin();
+
+      for(; i != lhs.end(); ++i, ++j)
+      {
+        if(*i != *j)
+        {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    __agency_exec_check_disable__
+    template<class Range>
+    __AGENCY_ANNOTATION
+    friend bool operator==(const Range& lhs, const array& rhs)
+    {
+      return rhs == lhs;
+    }
+
+    // this operator== avoids ambiguities introduced by the template friends above
+    __agency_exec_check_disable__
+    __AGENCY_ANNOTATION
+    bool operator==(const array& rhs) const
+    {
+      if(size() != rhs.size()) return false;
+
       auto i = begin();
       auto j = rhs.begin();
 
@@ -228,7 +259,7 @@ class array
     }
 
   private:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class... Args>
     __AGENCY_ANNOTATION
     static pointer allocate_and_construct_elements(allocator_type& alloc, size_t size, Args&&... args)

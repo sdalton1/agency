@@ -118,7 +118,18 @@ struct caching_memory_resource
 
       for(auto b : free_blocks_)
       {
-        allocator_type::deallocate(b.second, b.first);
+        // since this is only called from the destructor,
+        // swallow any exceptions thrown by this call to
+        // deallocate in order to avoid propagating exceptions
+        // out of destructors
+        try
+        {
+          allocator_type::deallocate(b.second, b.first);
+        }
+        catch(...)
+        {
+          // just swallow any exceptions we encounter
+        }
       }
       free_blocks_.clear();
 
@@ -191,7 +202,7 @@ class caching_allocator
       return allocator_traits<allocator_type>::construct_each(resource_->get_allocator(), first, last, std::forward<Args>(args)...);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class T>
     __AGENCY_ANNOTATION
     void destroy(T* ptr, size_type n)

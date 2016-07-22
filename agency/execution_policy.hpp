@@ -9,37 +9,48 @@
 #include <initializer_list>
 
 #include <agency/execution_agent.hpp>
-#include <agency/sequential_executor.hpp>
-#include <agency/concurrent_executor.hpp>
-#include <agency/parallel_executor.hpp>
-#include <agency/vector_executor.hpp>
-#include <agency/nested_executor.hpp>
+#include <agency/executor/sequential_executor.hpp>
+#include <agency/executor/concurrent_executor.hpp>
+#include <agency/executor/parallel_executor.hpp>
+#include <agency/executor/vector_executor.hpp>
+#include <agency/executor/scoped_executor.hpp>
+#include <agency/detail/execution_policy_traits.hpp>
 #include <agency/detail/tuple.hpp>
-
-// none of the functionality below actually depends on bulk_invoke.hpp
-// but make bulk_invoke & bulk_async available by including this header
-#include <agency/bulk_invoke.hpp>
 
 namespace agency
 {
 
 
-// XXX add is_execution_policy_v
-// XXX maybe this should simply check for the existence of the
-//     nested type T::execution_category?
-// XXX the problem is that execution agent as well as execution_agent_traits
-//     also define this typedef
-template<class T> struct is_execution_policy : std::false_type {};
+template<class T>
+struct is_execution_policy : detail::conjunction<
+  detail::has_execution_agent_type<T>,
+  detail::has_executor<T>,
+  detail::has_param<T>
+> {};
 
 
-// customization point -- allow users to specialize this
-// to change the type of execution policy based on the type of an executor
+namespace detail
+{
+
+
+// declare basic_execution_policy for replace_executor()'s signature below 
+template<class ExecutionAgent,
+         class BulkExecutor,
+         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
+         class DerivedExecutionPolicy = void>
+class basic_execution_policy;
+
+
+} // end detail
+
+
+// declare replace_executor() so basic_execution_policy.on() can use it below
 template<class ExecutionPolicy, class Executor>
-struct rebind_executor;
-
-
-template<class ExecutionPolicy, class Executor>
-using rebind_executor_t = typename rebind_executor<ExecutionPolicy,Executor>::type;
+detail::basic_execution_policy<
+  typename ExecutionPolicy::execution_agent_type,
+  Executor,
+  typename ExecutionPolicy::execution_category>
+replace_executor(const ExecutionPolicy& policy, const Executor& exec);
 
 
 namespace detail
@@ -65,7 +76,7 @@ using last_type = typename last_type_impl<Types...>::type;
 
 
 template<class ParamType, class... Args>
-struct is_nested_call
+struct is_scoped_call
   : std::integral_constant<
       bool,
       is_execution_policy<last_type<Args...>>::value &&
@@ -88,9 +99,9 @@ struct is_flat_call
 {};
 
 
-// declare nested_execution_policy for basic_execution_policy's use below
+// declare scoped_execution_policy for basic_execution_policy's use below
 template<class ExecutionPolicy1, class ExecutionPolicy2>
-class nested_execution_policy;
+class scoped_execution_policy;
 
 
 // XXX we should assert that ExecutionCategory is stronger than the category of ExecutionAgent
@@ -98,8 +109,8 @@ class nested_execution_policy;
 // ExecutionCategory, BulkExecutor, ExecutionAgent = __default_execution_agent<ExecutionAgent>, DerivedExecutionPolicy
 template<class ExecutionAgent,
          class BulkExecutor,
-         class ExecutionCategory = typename execution_agent_traits<ExecutionAgent>::execution_category,
-         class DerivedExecutionPolicy = void>
+         class ExecutionCategory,
+         class DerivedExecutionPolicy>
 class basic_execution_policy
 {
   public:
@@ -136,10 +147,13 @@ class basic_execution_policy
       return executor_;
     }
 
+    // .on() is just sugar for replace_executor(*this, executor())
     template<class OtherExecutor>
-    rebind_executor_t<derived_type,OtherExecutor> on(const OtherExecutor& executor) const
+    auto on(const OtherExecutor& exec) const ->
+      decltype(replace_executor(*this, exec))
     {
-      return rebind_executor_t<derived_type,OtherExecutor>(param(), executor);
+      // note the intentional use of ADL to call replace_executor()
+      return replace_executor(*this, exec);
     }
 
     // this is the flat form of operator()
@@ -153,16 +167,15 @@ class basic_execution_policy
       return derived_type{param_type{std::forward<Arg1>(arg1), std::forward<Args>(args)...}, executor()};
     }
 
-    // this is the nested form of operator()
+    // XXX maybe .scope() should just take OuterPolicy & InnerPolicy?
+    //     instead of a bunch of args?
+    // XXX seems like scope() should require at least two arguments
     template<class Arg1, class... Args>
-    typename std::enable_if<
-      detail::is_nested_call<param_type, Arg1, Args...>::value,
-      detail::nested_execution_policy<
-        derived_type,
-        decay_t<last_type<Arg1,Args...>>
-      >
-    >::type
-      operator()(Arg1&& arg1, Args&&... args) const
+    detail::scoped_execution_policy<
+      derived_type,
+      decay_t<last_type<Arg1,Args...>>
+    >
+      scope(Arg1&& arg1, Args&&... args) const
     {
       // wrap the args in a tuple so we can manipulate them easier
       auto arg_tuple = detail::forward_as_tuple(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
@@ -176,8 +189,23 @@ class basic_execution_policy
       // get the inner execution policy
       auto inner = __tu::tuple_last(arg_tuple);
 
-      // return the nesting of the two policies
-      return detail::nested_execution_policy<derived_type,decltype(inner)>(outer, inner);
+      // return the composition of the two policies
+      return detail::scoped_execution_policy<derived_type,decltype(inner)>(outer, inner);
+    }
+
+    // this is the scoped form of operator()
+    // it is just sugar for .scope()
+    template<class Arg1, class... Args>
+    typename std::enable_if<
+      detail::is_scoped_call<param_type, Arg1, Args...>::value,
+      detail::scoped_execution_policy<
+        derived_type,
+        decay_t<last_type<Arg1,Args...>>
+      >
+    >::type
+      operator()(Arg1&& arg1, Args&&... args) const
+    {
+      return scope(std::forward<Arg1>(arg1), std::forward<Args>(args)...);
     }
 
     template<class Arg1, class... Args>
@@ -191,27 +219,27 @@ class basic_execution_policy
 
     // executor_ needs to be mutable, because:
     // * the global execution policy objects are constexpr
-    // * executor.bulk_add() is a non-const member function
+    // * executor's member functions are not const
     mutable executor_type executor_;
 };
 
 
 template<class ExecutionPolicy1, class ExecutionPolicy2>
-class nested_execution_policy
+class scoped_execution_policy
   : public basic_execution_policy<
       execution_group<
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
-      nested_executor<
+      scoped_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      nested_execution_tag<
+      scoped_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
       >,
-      nested_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
+      scoped_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >
 {
   private:
@@ -220,15 +248,15 @@ class nested_execution_policy
         typename ExecutionPolicy1::execution_agent_type,
         typename ExecutionPolicy2::execution_agent_type
       >,
-      nested_executor<
+      scoped_executor<
         typename ExecutionPolicy1::executor_type,
         typename ExecutionPolicy2::executor_type
       >,
-      nested_execution_tag<
+      scoped_execution_tag<
         typename ExecutionPolicy1::execution_category,
         typename ExecutionPolicy2::execution_category
       >,
-      nested_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
+      scoped_execution_policy<ExecutionPolicy1,ExecutionPolicy2>
     >;
 
 
@@ -238,39 +266,49 @@ class nested_execution_policy
     using typename super_t::execution_agent_type;
     using typename super_t::executor_type;
 
-    nested_execution_policy(const outer_execution_policy_type& outer_exec,
-                            const inner_execution_policy_type& inner_exec)
-      : super_t(typename execution_agent_type::param_type(outer_exec.param(), inner_exec.param()),
-                executor_type(outer_exec.executor(), inner_exec.executor()))
+    scoped_execution_policy(const outer_execution_policy_type& outer,
+                            const inner_execution_policy_type& inner)
+      : super_t(typename execution_agent_type::param_type(outer.param(), inner.param()),
+                executor_type(outer.executor(), inner.executor())),
+        outer_(outer),
+        inner_(inner)
     {}
+
+    const outer_execution_policy_type& outer() const
+    {
+      return outer_;
+    }
+
+    const inner_execution_policy_type& inner() const
+    {
+      return inner_;
+    }
+
+  private:
+    outer_execution_policy_type outer_;
+    inner_execution_policy_type inner_;
 };
 
 
 } // end detail
 
 
-
-template<class ExecutionAgent, class BulkExecutor, class ExecutionCategory, class DerivedExecutionPolicy>
-struct is_execution_policy<detail::basic_execution_policy<ExecutionAgent,BulkExecutor,ExecutionCategory,DerivedExecutionPolicy>> : std::true_type {};
-
-
-template<class T1, class T2>
-struct is_execution_policy<detail::nested_execution_policy<T1,T2>>
-  : std::integral_constant<
-      bool,
-      is_execution_policy<T1>::value && is_execution_policy<T2>::value
-    >
-{};
-
-
 template<class ExecutionPolicy, class Executor>
-struct rebind_executor
+detail::basic_execution_policy<
+  typename ExecutionPolicy::execution_agent_type,
+  Executor,
+  typename ExecutionPolicy::execution_category
+>
+replace_executor(const ExecutionPolicy& policy, const Executor& exec)
 {
-  using type = detail::basic_execution_policy<
+  using result_type = detail::basic_execution_policy<
     typename ExecutionPolicy::execution_agent_type,
-    Executor
+    Executor,
+    typename ExecutionPolicy::execution_category
   >;
-};
+
+  return result_type(policy.param(), exec);
+}
 
 
 class sequential_execution_policy : public detail::basic_execution_policy<sequential_agent, sequential_executor, sequential_execution_tag, sequential_execution_policy>
@@ -283,10 +321,7 @@ class sequential_execution_policy : public detail::basic_execution_policy<sequen
 };
 
 
-template<> struct is_execution_policy<sequential_execution_policy> : std::true_type {};
-
-
-const sequential_execution_policy seq{};
+constexpr sequential_execution_policy seq{};
 
 
 class concurrent_execution_policy : public detail::basic_execution_policy<concurrent_agent, concurrent_executor, concurrent_execution_tag, concurrent_execution_policy>
@@ -299,10 +334,7 @@ class concurrent_execution_policy : public detail::basic_execution_policy<concur
 };
 
 
-template<> struct is_execution_policy<concurrent_execution_policy> : std::true_type {};
-
-
-const concurrent_execution_policy con{};
+constexpr concurrent_execution_policy con{};
 
 
 class parallel_execution_policy : public detail::basic_execution_policy<parallel_agent, parallel_executor, parallel_execution_tag, parallel_execution_policy>
@@ -313,9 +345,6 @@ class parallel_execution_policy : public detail::basic_execution_policy<parallel
   public:
     using super_t::basic_execution_policy;
 };
-
-
-template<> struct is_execution_policy<parallel_execution_policy> : std::true_type {};
 
 
 const parallel_execution_policy par{};
@@ -331,11 +360,64 @@ class vector_execution_policy : public detail::basic_execution_policy<vector_age
 };
 
 
-template<> struct is_execution_policy<vector_execution_policy> : std::true_type {};
+constexpr vector_execution_policy vec{};
 
 
-const vector_execution_policy vec{};
+namespace experimental
+{
+namespace detail
+{
 
 
+template<class ExecutionPolicy, std::size_t group_size,
+         std::size_t grain_size = 1,
+         class ExecutionAgent = basic_static_execution_agent<
+           agency::detail::execution_policy_agent_t<ExecutionPolicy>,
+           group_size,
+           grain_size
+         >,
+         class Executor       = agency::detail::execution_policy_executor_t<ExecutionPolicy>>
+using basic_static_execution_policy = agency::detail::basic_execution_policy<
+  ExecutionAgent,
+  Executor
+>;
+
+
+} // end detail
+
+
+template<size_t group_size, size_t grain_size = 1>
+class static_sequential_execution_policy : public detail::basic_static_execution_policy<agency::sequential_execution_policy, group_size, grain_size>
+{
+  private:
+    using super_t = detail::basic_static_execution_policy<agency::sequential_execution_policy, group_size, grain_size>;
+
+  public:
+    using super_t::super_t;
+};
+
+
+template<size_t group_size, size_t grain_size = 1>
+class static_concurrent_execution_policy : public detail::basic_static_execution_policy<
+  agency::concurrent_execution_policy,
+  group_size,
+  grain_size,
+  static_concurrent_agent<group_size, grain_size>
+>
+{
+  private:
+    using super_t = detail::basic_static_execution_policy<
+      agency::concurrent_execution_policy,
+      group_size,
+      grain_size,
+      static_concurrent_agent<group_size, grain_size>
+    >;
+
+  public:
+    using super_t::super_t;
+};
+
+
+} // end experimental
 } // end agency
 

@@ -113,7 +113,7 @@ std::future<void> when_all(ForwardIterator first, ForwardIterator last)
 
 // then() with launch policy for std::future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::future<T>&)>>
   then(std::future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::future<T>&& fut, Function&& f)
@@ -128,7 +128,7 @@ std::future<typename std::result_of<Function(std::future<T>&)>::type>
 
 
 template<class T, class Function>
-std::future<typename std::result_of<Function(T&)>::type>
+std::future<detail::result_of_t<Function(T&)>>
   monadic_then(std::future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::future<T>&& fut, Function&& f)
@@ -143,7 +143,7 @@ std::future<typename std::result_of<Function(T&)>::type>
 
 
 template<class Function>
-std::future<typename std::result_of<Function()>::type>
+std::future<detail::result_of_t<Function()>>
   monadic_then(std::future<void>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::future<void>&& fut, Function&& f)
@@ -159,7 +159,7 @@ std::future<typename std::result_of<Function()>::type>
 
 // then() for std::future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::future<T>&)>>
   then(std::future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
@@ -176,7 +176,7 @@ auto monadic_then(std::future<T>& fut, Function&& f) ->
 
 // then() with launch policy for std::shared_future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::shared_future<T>&)>>
   then(std::shared_future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
@@ -192,7 +192,7 @@ std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
 
 // then() for std::shared_future
 template<class T, class Function>
-std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
+std::future<detail::result_of_t<Function(std::shared_future<T>&)>>
   then(std::shared_future<T>& fut, Function&& f)
 {
   return detail::then(fut, std::launch::async | std::launch::deferred, std::forward<Function>(f));
@@ -201,7 +201,7 @@ std::future<typename std::result_of<Function(std::shared_future<T>&)>::type>
 
 // monadic_then() for std::shared_future
 template<class T, class Function>
-std::future<typename std::result_of<Function(T&)>::type>
+std::future<detail::result_of_t<Function(T&)>>
   monadic_then(std::shared_future<T>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::shared_future<T>&& fut, Function&& f)
@@ -216,7 +216,7 @@ std::future<typename std::result_of<Function(T&)>::type>
 
 
 template<class Function>
-std::future<typename std::result_of<Function()>::type>
+std::future<detail::result_of_t<Function()>>
   monadic_then(std::shared_future<void>& fut, std::launch policy, Function&& f)
 {
   return std::async(policy, [](std::shared_future<void>&& fut, Function&& f)
@@ -250,7 +250,7 @@ struct rebind_future_value<Future<FromType>,ToType>
 };
 
 
-__DEFINE_HAS_NESTED_TYPE(has_value_type, value_type);
+__DEFINE_HAS_MEMBER_TYPE(has_value_type, value_type);
 
 
 template<class Future>
@@ -323,6 +323,58 @@ struct is_future
       is_future_detail::has_wait<T>::value && is_future_detail::has_get<T>::value
     >
 {};
+
+
+
+template<class T>
+struct is_non_void_future_impl
+{
+  template<class U,
+           class = typename std::enable_if<
+             is_future<U>::value
+           >::type,
+           class = typename std::enable_if<
+             !std::is_void<future_value_t<U>>::value
+           >::type
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+template<class T>
+struct is_non_void_future
+  : is_non_void_future_impl<T>::type
+{};
+
+
+template<class T>
+struct is_void_future_impl
+{
+  template<class U,
+           class = typename std::enable_if<
+             is_future<U>::value
+           >::type,
+           class = typename std::enable_if<
+             std::is_void<future_value_t<U>>::value
+           >::type
+          >
+  static std::true_type test(int);
+
+  template<class>
+  static std::false_type test(...);
+
+  using type = decltype(test<T>(0));
+};
+
+template<class T>
+struct is_void_future
+  : is_void_future_impl<T>::type
+{};
+
 
 
 template<class T, template<class> class Future, class Enable = void>
@@ -533,7 +585,7 @@ struct future_traits
     // 2. return fut, if future_type is copiable
     // 3. convert fut into a std::future via std::async() and call .share()
     
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Future1,
              class = typename std::enable_if<
                std::is_copy_constructible<Future1>::value
@@ -561,7 +613,7 @@ struct future_traits
       return std_fut.share();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Future1,
              class = typename std::enable_if<
                detail::has_share<Future1>::value
@@ -573,7 +625,7 @@ struct future_traits
       return fut.share();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Future1,
              class = typename std::enable_if<
                !detail::has_share<Future1>::value
@@ -635,7 +687,7 @@ struct future_traits
     }
 
   private:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast_impl2(future_type& fut,
@@ -656,7 +708,7 @@ struct future_traits
       return future_traits<future_type>::then(fut, detail::cast_functor<U>());
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast_impl1(future_type& fut,
@@ -700,20 +752,20 @@ struct future_traits<std::future<T>>
 
     using shared_future_type = std::shared_future<T>;
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     static shared_future_type share(future_type& fut)
     {
       return fut.share();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     static rebind<void> make_ready()
     {
       return detail::make_ready_future();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U, class... Args>
     __AGENCY_ANNOTATION
     static rebind<U> make_ready(Args&&... args)
@@ -721,7 +773,7 @@ struct future_traits<std::future<T>>
       return detail::make_ready_future<U>(std::forward<Args>(args)...);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Function>
     __AGENCY_ANNOTATION
     static auto then(future_type& fut, Function&& f) ->
@@ -752,7 +804,7 @@ struct future_traits<std::future<T>>
 
 
   public:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast(future_type& fut)
@@ -775,20 +827,20 @@ struct future_traits<std::shared_future<T>>
 
     using shared_future_type = std::shared_future<T>;
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     static shared_future_type share(future_type& fut)
     {
       return fut;
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     __AGENCY_ANNOTATION
     static rebind<void> make_ready()
     {
       return detail::make_ready_shared_future();
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U, class... Args>
     __AGENCY_ANNOTATION
     static rebind<U> make_ready(Args&&... args)
@@ -796,7 +848,7 @@ struct future_traits<std::shared_future<T>>
       return detail::make_ready_shared_future<U>(std::forward<Args>(args)...);
     }
 
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Function>
     __AGENCY_ANNOTATION
     static auto then(future_type& fut, Function&& f) ->
@@ -826,7 +878,7 @@ struct future_traits<std::shared_future<T>>
     }
   
   public:
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class U>
     __AGENCY_ANNOTATION
     static rebind<U> cast(future_type& fut)
@@ -871,7 +923,7 @@ void unwrap_small_tuple(Tuple&&,
                         >::type* = 0)
 {}
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Tuple>
 __AGENCY_ANNOTATION
 unwrap_small_tuple_result_t<typename std::decay<Tuple>::type>
@@ -941,7 +993,7 @@ template<class... Futures>
 using tuple_of_future_values = typename tuple_of_future_values_impl<Futures...>::type;
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            std::is_void<
@@ -957,7 +1009,7 @@ void_value get_value(Future& fut)
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class Future,
          class = typename std::enable_if<
            !std::is_void<
@@ -973,7 +1025,7 @@ typename future_traits<Future>::value_type
 }
 
 
-__agency_hd_warning_disable__
+__agency_exec_check_disable__
 template<class... Futures>
 __AGENCY_ANNOTATION
 tuple_of_future_values<Futures...>

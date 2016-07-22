@@ -5,6 +5,7 @@
 #include <agency/detail/integer_sequence.hpp>
 #include <agency/detail/type_list.hpp>
 #include <agency/detail/shape_tuple.hpp>
+#include <agency/detail/utility.hpp>
 
 // we can't use std::numeric_limits<T>::max() in a __device__
 // function, so we need to use an alternative in Thrust
@@ -264,6 +265,25 @@ size_t shape_head_size(const Shape& s)
 {
   return detail::shape_size(detail::shape_head(s));
 } // end shape_head_size()
+
+
+template<size_t n, class Shape>
+using shape_take_t = decltype(
+  detail::decay_copy(
+    detail::unwrap_single_element_tuple_if(
+      detail::tuple_take_if<n>(std::declval<Shape>())
+    )
+  )
+);
+
+
+// note that shape_take() unwraps single element tuples which result from tuple_take_if
+template<size_t n, class Shape>
+__AGENCY_ANNOTATION
+shape_take_t<n,Shape> shape_take(const Shape& s)
+{
+  return detail::unwrap_single_element_tuple_if(detail::tuple_take_if<n>(s));
+}
 
 
 } // end detail

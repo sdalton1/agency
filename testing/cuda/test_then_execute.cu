@@ -1,5 +1,5 @@
-#include <agency/cuda/grid_executor.hpp>
-#include <agency/flattened_executor.hpp>
+#include <agency/cuda/executor/grid_executor.hpp>
+#include <agency/executor/flattened_executor.hpp>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -58,8 +58,8 @@ int main()
       },
       shape,
       ready,
-      agency::detail::make_factory(7),
-      agency::detail::make_factory(13)
+      agency::detail::make_copy_construct(7),
+      agency::detail::make_copy_construct(13)
     );
 
     auto result = f.get();
@@ -86,7 +86,7 @@ int main()
       },
       shape,
       ready,
-      agency::detail::make_factory(7)
+      agency::detail::make_copy_construct(7)
     );
 
     auto result = f.get();
@@ -113,7 +113,7 @@ int main()
       },
       shape,
       ready,
-      agency::detail::make_factory(7)
+      agency::detail::make_copy_construct(7)
     );
 
     auto result = f.get();

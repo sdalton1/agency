@@ -2,7 +2,7 @@
 
 #include <agency/detail/config.hpp>
 #include <agency/detail/unit.hpp>
-#include <agency/detail/unique_ptr.hpp>
+#include <agency/detail/memory/unique_ptr.hpp>
 #include <agency/detail/tuple.hpp>
 #include <type_traits>
 
@@ -63,7 +63,7 @@ class asynchronous_state_impl
     asynchronous_state_impl() = default;
 
     // constructs an immediately ready state
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class... Args,
              class = typename std::enable_if<
                std::is_constructible<T,Args...>::value
@@ -128,6 +128,12 @@ class asynchronous_state_impl
       storage_.swap(other.storage_);
     }
 
+    __AGENCY_ANNOTATION
+    storage_type& storage()
+    {
+      return storage_;
+    }
+
   private:
     template<class, class, bool>
     friend class asynchronous_state_impl;
@@ -166,6 +172,7 @@ class asynchronous_state_impl<T,Alloc,true>
   public:
     using value_type = T;
     using pointer = empty_type_ptr<T>;
+    using storage_type = void;
 
     // constructs an invalid state
     __AGENCY_ANNOTATION

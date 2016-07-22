@@ -30,6 +30,9 @@ class event
       : stream_(std::move(s))
     {
 #if __cuda_lib_has_cudart
+      // switch to the stream's device when creating the event
+      scoped_current_device scope(stream().device());
+
       detail::throw_on_error(cudaEventCreateWithFlags(&e_, event_create_flags), "cudaEventCreateWithFlags in cuda::detail::event ctor");
 #else
       detail::terminate_with_message("cuda::detail::event ctor requires CUDART");
@@ -113,21 +116,25 @@ class event
     }
 
     __host__ __device__
+    cudaError_t wait_and_return_cuda_error() const
+    {
+#if __cuda_lib_has_cudart
+#  ifndef __CUDA_ARCH__
+      return cudaEventSynchronize(e_);
+#  else
+      return cudaDeviceSynchronize();
+#  endif // __CUDA_ARCH__
+#else
+      return cudaErrorNotSupported;
+#endif // __cuda_lib_has_cudart
+    }
+
+    __host__ __device__
     void wait() const
     {
       // XXX should probably check for valid() here
 
-#if __cuda_lib_has_cudart
-
-#ifndef __CUDA_ARCH__
-      detail::throw_on_error(cudaEventSynchronize(e_), "cudaEventSynchronize in cuda::detail::event::wait");
-#else
-      detail::throw_on_error(cudaDeviceSynchronize(), "cudaDeviceSynchronize in cuda::detail::event::wait");
-#endif // __CUDA_ARCH__
-
-#else
-      detail::terminate_with_message("cuda::detail::event::wait requires CUDART");
-#endif // __cuda_lib_has_cudart
+      detail::throw_on_error(wait_and_return_cuda_error(), "wait_and_return_cuda_error in cuda::detail::event::wait");
     }
 
     __host__ __device__
@@ -240,6 +247,41 @@ class event
       return event(std::move(new_stream));
     }
 
+    // this form of then() leaves this event in a valid state afterwards
+    // XXX might want to see if we can receive f by forwarding reference
+    template<class Function>
+    __host__ __device__
+    event then(Function f)
+    {
+#ifndef __CUDA_ARCH__
+      // if on host, use a stream callback
+      // if on device, use then_on()
+
+      // create a stream for the callback on the current device
+      detail::stream new_stream(stream().device());
+
+      // make the new stream wait on this event
+      stream_wait(new_stream, *this);
+
+      // launch f on the new stream
+      new_stream.add_callback(f);
+
+      // return a new event
+      return event(std::move(new_stream));
+#else
+      detail::terminate_with_message("cuda::detail::event::then(): unimplemented function called.");
+      return event();
+      // launch a single-thread kernel
+      //return then_on([=](uint3, uint3){ f(); }, dim3{1}, dim3{1}, 0, stream().device());
+#endif
+    }
+
+    __host__ __device__
+    cudaEvent_t native_handle() const
+    {
+      return e_;
+    }
+
   private:
     stream stream_;
     cudaEvent_t e_;
@@ -253,12 +295,7 @@ class event
       cudaError_t error = cudaEventDestroy(e_);
       e_ = 0;
 
-#if __cuda_lib_has_printf
-      if(error)
-      {
-        printf("CUDA error after cudaEventDestroy in cuda::detail::event::destroy_event: %s", cudaGetErrorString(error));
-      } // end if
-#endif // __cuda_lib_has_printf
+      detail::print_error_message_if(error, "CUDA error after cudaEventDestroy in cuda::detail::event::destroy_event");
 #endif // __cuda_lib_has_cudart
 
       return 0;
@@ -326,6 +363,13 @@ class event
 };
 
 
+inline __host__ __device__
+event make_ready_event()
+{
+  return event(event::construct_ready);
+}
+
+
 template<class... Events>
 __host__ __device__
 event when_all_events_are_ready(const device_id& device, Events&... events)
@@ -348,6 +392,33 @@ event when_all_events_are_ready(Events&... events)
   // XXX we might prefer the device associated with the first event
   return agency::cuda::detail::when_all_events_are_ready(current_device(), events...);
 }
+
+
+// a blocking_event is an event whose destructor calls .wait() when the blocking_event is valid
+class blocking_event : public event
+{
+  public:
+    inline __host__ __device__
+    blocking_event(blocking_event&& other)
+      : event(std::move(other))
+    {}
+
+    inline __host__ __device__
+    blocking_event(event&& other)
+      : event(std::move(other))
+    {}
+
+    inline __host__ __device__
+    ~blocking_event()
+    {
+      if(valid())
+      {
+        // since we're in a destructor, let's avoid
+        // propagating exceptions out of a destructor
+        detail::print_error_message_if(wait_and_return_cuda_error(), "wait_and_return_cuda_error in cuda::detail::blocking_event() dtor");
+      }
+    }
+};
 
 
 } // end detail

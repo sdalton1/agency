@@ -1,11 +1,10 @@
 #include <cassert>
 #include <iostream>
 #include <chrono>
-#include <agency/execution_policy.hpp>
-#include <agency/cuda/execution_policy.hpp>
-#include <agency/cuda/multidevice_executor.hpp>
+#include <agency/bulk_invoke.hpp>
+#include <agency/cuda.hpp>
 #include <agency/cuda/experimental/multidevice_array.hpp>
-#include <agency/experimental/view.hpp>
+#include <agency/experimental.hpp>
 
 
 template<class Executor, class View>
@@ -13,7 +12,7 @@ void saxpy(Executor& exec, size_t n, float a, View x, View y, View z)
 {
   using namespace agency;
 
-  bulk_invoke(cuda::par(n).on(exec), [=] __host__ __device__ (agency::parallel_agent& self)
+  bulk_invoke(par(n).on(exec), [=] __host__ __device__ (agency::parallel_agent& self)
   {
     int i = self.index();
     z[i] = a * x[i] + y[i];
@@ -24,7 +23,7 @@ void saxpy(Executor& exec, size_t n, float a, View x, View y, View z)
 template<class Container, class Executor>
 double time_saxpy()
 {
-  using agency::experimental::view;
+  using agency::experimental::all;
 
   Executor exec;
 
@@ -32,7 +31,7 @@ double time_saxpy()
   Container x(n, 1.f), y(n, 2.f), z(n);
   float a = 13.;
 
-  saxpy(exec, n, a, view(x), view(y), view(z));
+  saxpy(exec, n, a, all(x), all(y), all(z));
 
   {
     // put this in its own scope so that ref's storage gets deallocated
@@ -42,7 +41,7 @@ double time_saxpy()
   }
 
   // ensure everything migrates back to the GPU before timing
-  saxpy(exec, n, a, view(x), view(y), view(z));
+  saxpy(exec, n, a, all(x), all(y), all(z));
 
   // time a number of trials
   size_t num_trials = 20;
@@ -50,7 +49,7 @@ double time_saxpy()
   auto start = std::chrono::high_resolution_clock::now();
   for(size_t i = 0; i < num_trials; ++i)
   {
-    saxpy(exec, n, a, view(x), view(y), view(z));
+    saxpy(exec, n, a, all(x), all(y), all(z));
   }
   std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
 

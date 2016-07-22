@@ -1,6 +1,7 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
+#include <agency/experimental/array.hpp>
 #include <cstddef>
 
 namespace agency
@@ -92,8 +93,16 @@ class span : private detail::span_base<Extent>
     __AGENCY_ANNOTATION
     span(element_type (&arr)[N]) : span(arr, N) {}
 
+    template<size_t N>
+    __AGENCY_ANNOTATION
+    span(array<typename std::remove_const<element_type>::type,N>& arr) : span(arr, N) {}
+
+    template<size_t N>
+    __AGENCY_ANNOTATION
+    span(const array<typename std::remove_const<element_type>::type,N>& arr) : span(arr, N) {}
+
     // XXX should require iterator contiguity, but that requires contiguous_iterator_tag
-    __agency_hd_warning_disable__
+    __agency_exec_check_disable__
     template<class Container,
              class BeginPointer = decltype(&*std::declval<Container>().begin()),
              class EndPointer = decltype(&*std::declval<Container>().end()),
@@ -143,9 +152,30 @@ class span : private detail::span_base<Extent>
       return begin()[idx];
     }
 
+    __AGENCY_ANNOTATION
+    span<element_type, dynamic_extent> subspan(index_type offset, index_type count = dynamic_extent) const
+    {
+      return span<element_type, dynamic_extent>(data() + offset, count);
+    }
+
   private:
     pointer data_;
 };
+
+
+template<class T, std::ptrdiff_t Extent>
+__AGENCY_ANNOTATION
+bool operator==(const span<T,Extent>& lhs, const span<T,Extent>& rhs)
+{
+  if(lhs.size() != rhs.size()) return false;
+
+  for(auto i = 0; i < lhs.size(); ++i)
+  {
+    if(lhs[i] != rhs[i]) return false;
+  }
+
+  return true;
+}
 
 
 // XXX segmented_span might be a bad name because "span" probably implies contiguous
@@ -165,18 +195,19 @@ class segmented_span
              class = typename std::enable_if<
                sizeof...(Spans) == num_segments
              >::type>
-    __host__ __device__
+    __AGENCY_ANNOTATION
     segmented_span(Spans... segments)
       : spans_{segments...}
     {}
 
-    __host__ __device__
+    __AGENCY_ANNOTATION
     reference operator[](size_t i) const
     {
       auto size0 = spans_[0].size();
       return i < size0 ? spans_[0][i] : spans_[1][i - size0];
     }
 
+    __AGENCY_ANNOTATION
     size_t size() const
     {
       return spans_[0].size() + spans_[1].size();

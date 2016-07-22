@@ -1,11 +1,14 @@
 #pragma once
 
+#include <agency/detail/small_vector_facade.hpp>
+#include <agency/detail/tuple.hpp>
+#include <agency/detail/type_traits.hpp>
+
 #include <array>
 #include <initializer_list>
 #include <type_traits>
-#include <agency/detail/small_vector_facade.hpp>
 #include <array>
-#include <agency/detail/tuple.hpp>
+
 
 namespace agency
 {
@@ -284,9 +287,9 @@ class lattice
     }
 
     // XXX WAR cudafe perf issue
-    //using index_type = typename std::result_of<
+    //using index_type = typename detail::result_of_t<
     //  decltype(&lattice::shape)(lattice)
-    //>::type;
+    //>;
     using index_type = decltype(value_type{} - value_type{});
 
     // XXX should create a grid empty of points
@@ -306,17 +309,17 @@ class lattice
       : min_(min), max_(max)
     {}
 
-    template<class... Size,
+    template<class Size1, class... Sizes,
              typename = typename std::enable_if<
                agency::detail::all_of<
-                 std::is_convertible<Size,size_t>::value...
+                 std::is_convertible<Size1,size_t>::value, std::is_convertible<Sizes,size_t>::value...
                >::value &&
-               sizeof...(Size) == rank
+               sizeof...(Sizes) == (rank - 1)
              >::type 
             >
     __AGENCY_ANNOTATION
-    lattice(const Size&... dimensions)
-      : lattice(index_type{static_cast<size_t>(dimensions)...})
+    lattice(const Size1& dimension1, const Sizes&... dimensions)
+      : lattice(index_type{static_cast<size_t>(dimension1), static_cast<size_t>(dimensions)...})
     {}
 
     __AGENCY_ANNOTATION

@@ -2,7 +2,6 @@
 
 #include <type_traits>
 #include <agency/detail/integer_sequence.hpp>
-#include <agency/detail/type_list.hpp>
 
 namespace agency
 {
@@ -33,30 +32,6 @@ struct identity
 
 template<class T>
 using decay_t = typename std::decay<T>::type;
-
-
-template<class T>
-using result_of_t = typename std::result_of<T>::type;
-
-
-template<class T, size_t n>
-struct repeat_type_impl
-{
-  using rest = typename repeat_type_impl<T,n-1>::type;
-  using type = typename type_list_prepend<
-    T,
-    rest
-  >::type;
-};
-
-template<class T>
-struct repeat_type_impl<T,0>
-{
-  using type = type_list<>;
-};
-
-template<class T, size_t n>
-using repeat_type = typename repeat_type_impl<T,n>::type;
 
 
 template<class... Conditions>
@@ -144,6 +119,84 @@ struct decay_if_not_void<void>
 
 template<class T>
 using decay_if_not_void_t = typename decay_if_not_void<T>::type;
+
+
+template<class...> 
+using void_t = void; 
+ 
+struct nonesuch 
+{ 
+  nonesuch() = delete; 
+  ~nonesuch() = delete; 
+  nonesuch(const nonesuch&) = delete; 
+  void operator=(const nonesuch&) = delete; 
+}; 
+ 
+ 
+template<class Default, class AlwaysVoid,
+         template<class...> class Op, class... Args> 
+struct detector 
+{ 
+  using value_t = std::false_type; 
+  using type = Default; 
+}; 
+ 
+ 
+template<class Default, template<class...> class Op, class... Args> 
+struct detector<Default, void_t<Op<Args...>>, Op, Args...> 
+{ 
+  using value_t = std::true_type; 
+  using type = Op<Args...>; 
+}; 
+ 
+ 
+template<template<class...> class Op, class... Args> 
+using is_detected = typename detector<nonesuch, void, Op, Args...>::value_t; 
+ 
+template<template<class...> class Op, class... Args> 
+using detected_t = typename detector<nonesuch, void, Op, Args...>::type; 
+ 
+template<class Default, template<class...> class Op, class... Args> 
+using detected_or = detector<Default, void, Op, Args...>; 
+ 
+template<class Default, template<class...> class Op, class... Args> 
+using detected_or_t = typename detected_or<Default,Op,Args...>::type; 
+
+
+template<class T>
+struct is_cuda_extended_device_lambda
+  : 
+#if __CUDACC_EXTENDED_LAMBDA__
+    std::integral_constant<bool, __nv_is_extended_device_lambda_closure_type(T)>
+#else
+    std::false_type
+#endif
+{};
+
+
+template<class T, class Enable = void>
+struct result_of_impl : std::result_of<T> {};
+
+template<class Function, class... Args>
+struct result_of_impl<
+  Function(Args...),
+  typename std::enable_if<
+    is_cuda_extended_device_lambda<Function>::value
+  >::type
+>
+{
+  // XXX we should actually test that Function is callable with Args...
+  //     and then only include this using declaration if it is callable
+  using type = void;
+};
+
+
+template<class T>
+struct result_of : result_of_impl<T> {};
+
+
+template<class T>
+using result_of_t = typename result_of<T>::type;
 
 
 } // end detail

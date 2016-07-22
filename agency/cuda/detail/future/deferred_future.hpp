@@ -1,15 +1,16 @@
 #pragma once
 
 #include <agency/detail/config.hpp>
-#include <agency/detail/optional.hpp>
+#include <agency/experimental/optional.hpp>
 #include <agency/cuda/detail/boxed_value.hpp>
 #include <agency/detail/unit.hpp>
 #include <agency/detail/factory.hpp>
 #include <agency/future.hpp>
 #include <agency/cuda/detail/future/async_future.hpp>
-#include <agency/functional.hpp>
+#include <agency/detail/invoke.hpp>
 #include <agency/detail/unique_function.hpp>
 #include <agency/detail/memory/malloc_allocator.hpp>
+#include <agency/detail/type_traits.hpp>
 #include <type_traits>
 
 
@@ -72,7 +73,7 @@ class deferred_function<Result(Args...)>
       __AGENCY_ANNOTATION
       agency::detail::unit operator()(Args&&... args) const
       {
-        agency::invoke(function_, std::forward<Args>(args)...);
+        agency::detail::invoke(function_, std::forward<Args>(args)...);
         return agency::detail::unit{};
       }
     };
@@ -99,7 +100,7 @@ class deferred_function<Result(Args...)>
     deferred_function(Function&& f,
                       typename std::enable_if<
                         !deferred_state_requires_storage<
-                          typename std::result_of<Function(Args...)>::type
+                          agency::detail::result_of_t<Function(Args...)>
                         >::value
                       >::type* = 0)
       : function_(std::allocator_arg, allocator_type(), make_invoke_and_return_unit(std::forward<Function>(f)))
@@ -110,7 +111,7 @@ class deferred_function<Result(Args...)>
     deferred_function(Function&& f,
                       typename std::enable_if<
                         deferred_state_requires_storage<
-                          typename std::result_of<Function(Args...)>::type
+                          agency::detail::result_of_t<Function(Args...)>
                         >::value
                       >::type* = 0)
       : function_(std::allocator_arg, allocator_type(), std::forward<Function>(f))
@@ -148,10 +149,10 @@ constexpr ready_made_t ready_made{};
 
 
 template<class T, bool = deferred_state_requires_storage<T>::value>
-class deferred_result : detail::boxed_value<agency::detail::optional<T>>
+class deferred_result : detail::boxed_value<agency::experimental::optional<T>>
 {
   public:
-    using super_t = detail::boxed_value<agency::detail::optional<T>>;
+    using super_t = detail::boxed_value<agency::experimental::optional<T>>;
     using super_t::super_t;
     using super_t::operator=;
 
@@ -162,7 +163,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       : super_t(std::move(static_cast<super_t&>(other)))
     {
       // empty other
-      other.value() = agency::detail::nullopt;
+      other.value() = agency::experimental::nullopt;
     }
 
     template<class... Args,
@@ -182,7 +183,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       super_t::operator=(std::move(other));
 
       // empty other
-      other.value() = agency::detail::nullopt;
+      other.value() = agency::experimental::nullopt;
 
       return *this;
     }
@@ -207,7 +208,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
       __AGENCY_ANNOTATION
       ~invalidate_at_scope_exit()
       {
-        self.value() = agency::detail::nullopt;
+        self.value() = agency::experimental::nullopt;
       }
     };
 
@@ -217,9 +218,9 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
     template<class Function>
     __AGENCY_ANNOTATION
     auto fmap(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f), this->ref()))
+      decltype(agency::detail::invoke(std::forward<Function>(f), this->ref()))
     {
-      return agency::invoke(std::forward<Function>(f), ref());
+      return agency::detail::invoke(std::forward<Function>(f), ref());
     }
 
     // calls f on the object contained within this deferred_result
@@ -238,7 +239,7 @@ class deferred_result : detail::boxed_value<agency::detail::optional<T>>
 
 template<class T>
 class deferred_result<T,false>
-  : agency::detail::optional<
+  : agency::experimental::optional<
       typename std::conditional<
         std::is_void<T>::value,
         agency::detail::unit,
@@ -256,7 +257,7 @@ class deferred_result<T,false>
       T
     >::type;
 
-    using super_t = agency::detail::optional<value_type>;
+    using super_t = agency::experimental::optional<value_type>;
 
     using super_t::super_t;
     using super_t::operator=;
@@ -271,7 +272,7 @@ class deferred_result<T,false>
       : super_t(std::move(other))
     {
       // empty other
-      other = agency::detail::nullopt;
+      other = agency::experimental::nullopt;
     }
 
     template<class U,
@@ -289,7 +290,7 @@ class deferred_result<T,false>
       }
 
       // empty other
-      other = agency::detail::nullopt;
+      other = agency::experimental::nullopt;
     }
 
     template<class... Args,
@@ -310,7 +311,7 @@ class deferred_result<T,false>
       super_t::operator=(std::move(other));
 
       // empty other
-      other = agency::detail::nullopt;
+      other = agency::experimental::nullopt;
 
       return *this;
     }
@@ -365,7 +366,7 @@ class deferred_result<T,false>
       __AGENCY_ANNOTATION
       ~invalidate_at_scope_exit()
       {
-        self = agency::detail::nullopt;
+        self = agency::experimental::nullopt;
       }
     };
 
@@ -375,9 +376,9 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     auto fmap_impl(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f)))
+      decltype(agency::detail::invoke(std::forward<Function>(f)))
     {
-      return agency::invoke(std::forward<Function>(f));
+      return agency::detail::invoke(std::forward<Function>(f));
     }
 
     template<class U, class Function,
@@ -386,9 +387,9 @@ class deferred_result<T,false>
              >::type>
     __AGENCY_ANNOTATION
     auto fmap_impl(Function&& f) ->
-      decltype(agency::invoke(std::forward<Function>(f), this->ref()))
+      decltype(agency::detail::invoke(std::forward<Function>(f), this->ref()))
     {
-      return agency::invoke(std::forward<Function>(f), this->ref());
+      return agency::detail::invoke(std::forward<Function>(f), this->ref());
     }
 
 
@@ -752,7 +753,7 @@ class deferred_future
       // operator() for non-void past_arg
       template<class U>
       __host__ __device__
-      typename std::result_of<Factory(Shape)>::type
+      agency::detail::result_of_t<Factory(Shape)>
         operator()(U& past_arg)
       {
         auto ready = async_future<U>::make_ready(std::move(past_arg));
@@ -762,7 +763,7 @@ class deferred_future
 
       // operator() for void past_arg
       __host__ __device__
-      typename std::result_of<Factory(Shape)>::type
+      agency::detail::result_of_t<Factory(Shape)>
         operator()()
       {
         auto ready = async_future<void>::make_ready();
@@ -773,7 +774,7 @@ class deferred_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    deferred_future<typename std::result_of<Factory(Shape)>::type>
+    deferred_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       bulk_then_functor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory> continuation{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
@@ -815,12 +816,12 @@ class deferred_future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __host__ __device__
-    deferred_future<typename std::result_of<Factory(Shape)>::type>
+    deferred_future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, device_id device)
     {
       printf("deferred_future::bulk_then_and_leave_valid(): Unimplemented.\n");
 
-      return deferred_future<typename std::result_of<Factory(Shape)>::type>();
+      return deferred_future<agency::detail::result_of_t<Factory(Shape)>>();
     }
 };
 

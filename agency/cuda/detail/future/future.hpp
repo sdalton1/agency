@@ -4,6 +4,8 @@
 #include <agency/cuda/detail/future/async_future.hpp>
 #include <agency/cuda/detail/future/deferred_future.hpp>
 #include <agency/detail/variant.hpp>
+#include <agency/detail/type_traits.hpp>
+#include <agency/detail/invoke.hpp>
 #include <utility>
 
 
@@ -251,7 +253,7 @@ class future
         __AGENCY_ANNOTATION
         result_type impl(agency::cuda::async_future<void>&)
         {
-          return agency::invoke(f_); 
+          return agency::detail::invoke(f_); 
         }
 
         template<class U>
@@ -259,7 +261,7 @@ class future
         result_type impl(agency::cuda::async_future<U>& fut)
         {
           U arg = fut.get();
-          return agency::invoke(f_, arg);
+          return agency::detail::invoke(f_, arg);
         }
 
         __AGENCY_ANNOTATION
@@ -383,8 +385,7 @@ class future
         //     or find a way to attach a deferred continuation onto an asynchronous CUDA future
         //     there ought to be a way to do it by implementing a deferred_continuation which waits on fut
         // XXX when Function is copyable, we ought to just use fut.then()
-        printf("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented\n");
-        assert(0);
+        detail::throw_runtime_error("future::then_and_leave_valid_visitor::operator()(cuda::future): unimplemented");
 
         using result_type = agency::detail::result_of_continuation_t<
           Function,
@@ -437,7 +438,7 @@ class future
 
       template<class Future>
       future<
-        typename std::result_of<Factory(Shape)>::type
+        agency::detail::result_of_t<Factory(Shape)>
       >
         operator()(Future& fut)
       {
@@ -447,7 +448,7 @@ class future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
-    future<typename std::result_of<Factory(Shape)>::type>
+    future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
       auto visitor = bulk_then_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
@@ -469,7 +470,7 @@ class future
       template<class Future>
       __AGENCY_ANNOTATION
       future<
-        typename std::result_of<Factory(Shape)>::type
+        agency::detail::result_of_t<Factory(Shape)>
       >
         operator()(Future& fut)
       {
@@ -479,7 +480,7 @@ class future
 
     template<class Function, class Factory, class Shape, class IndexFunction, class OuterFactory, class InnerFactory>
     __AGENCY_ANNOTATION
-    future<typename std::result_of<Factory(Shape)>::type>
+    future<agency::detail::result_of_t<Factory(Shape)>>
       bulk_then_and_leave_valid(Function f, Factory result_factory, Shape shape, IndexFunction index_function, OuterFactory outer_factory, InnerFactory inner_factory, agency::cuda::device_id device)
     {
       auto visitor = bulk_then_and_leave_valid_visitor<Function,Factory,Shape,IndexFunction,OuterFactory,InnerFactory>{f,result_factory,shape,index_function,outer_factory,inner_factory,device};
