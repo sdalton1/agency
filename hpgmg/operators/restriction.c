@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -171,8 +173,7 @@ void restriction(level_type * level_c, int id_c, level_type *level_f, int id_f, 
   if(level_f->restriction[restrictionType].num_blocks[1]>0){
     _timeStart = getTime();
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level_f->restriction[restrictionType].num_blocks[1]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+    parallel_for(level_f->restriction[restrictionType].num_blocks[1], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level_f->restriction[restrictionType].num_blocks[1])
     for(buffer = 0; buffer < level_f->restriction[restrictionType].num_blocks[1]; buffer++){

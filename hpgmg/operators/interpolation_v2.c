@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -285,8 +287,7 @@ void interpolation_v2(level_type * level_f, int id_f, double prescale_f, level_t
   if(level_c->interpolation.num_blocks[1]>0){
     _timeStart = getTime();
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level_c->interpolation.num_blocks[1]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+    parallel_for(level_c->interpolation.num_blocks[1], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level_c->interpolation.num_blocks[1])
     for(buffer = 0; buffer < level_c->interpolation.num_blocks[1]; buffer++){

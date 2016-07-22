@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -38,8 +40,7 @@ void smooth(level_type * level, int x_id, int rhs_id, double a, double b){
 
     // loop over all block/tiles this process owns...
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-      block = self.index();
+    parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){

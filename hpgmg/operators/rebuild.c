@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -97,8 +99,7 @@ void rebuild_operator_blackbox(level_type * level, double a, double b, int color
  
     // apply the operator and add to Aii and AbsAij 
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-      block = self.index();
+    parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){

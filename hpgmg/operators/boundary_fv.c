@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -32,8 +34,7 @@ void apply_BCs_v1(level_type * level, int x_id, int shape){
 
   double _timeStart = getTime();
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->boundary_condition.num_blocks[shape]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+  parallel_for(level->boundary_condition.num_blocks[shape], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level->boundary_condition.num_blocks[shape])
     for(buffer = 0; buffer < level->boundary_condition.num_blocks[shape]; buffer++){
@@ -120,8 +121,7 @@ void apply_BCs_v2(level_type * level, int x_id, int shape){
 
   double _timeStart = getTime();
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->boundary_condition.num_blocks[shape]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+  parallel_for(level->boundary_condition.num_blocks[shape], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level->boundary_condition.num_blocks[shape])
     for(buffer = 0; buffer < level->boundary_condition.num_blocks[shape]; buffer++){
@@ -291,8 +291,7 @@ void apply_BCs_v4(level_type * level, int x_id, int shape){
 
   double _timeStart = getTime();
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->boundary_condition.num_blocks[shape]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+  parallel_for(level->boundary_condition.num_blocks[shape], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level->boundary_condition.num_blocks[shape])
     for(buffer = 0; buffer < level->boundary_condition.num_blocks[shape]; buffer++){
@@ -601,8 +600,7 @@ void extrapolate_betas(level_type * level){
 
   double _timeStart = getTime();
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level->boundary_condition.num_blocks[shape]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+    parallel_for(level->boundary_condition.num_blocks[shape], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level->boundary_condition.num_blocks[shape])
     for(buffer = 0; buffer < level->boundary_condition.num_blocks[shape]; buffer++){

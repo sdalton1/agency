@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -10,8 +12,7 @@ void zero_vector(level_type * level, int id_a){
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -60,8 +61,7 @@ void init_vector(level_type * level, int id_a, double scalar){
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -114,8 +114,7 @@ void add_vectors(level_type * level, int id_c, double scale_a, int id_a, double 
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -158,8 +157,7 @@ void mul_vectors(level_type * level, int id_c, double scale, int id_a, int id_b)
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -202,8 +200,7 @@ void invert_vector(level_type * level, int id_c, double scale_a, int id_a){
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -246,8 +243,7 @@ void scale_vector(level_type * level, int id_c, double scale_a, int id_a){
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -493,8 +489,7 @@ void shift_vector(level_type * level, int id_c, int id_a, double shift_a){
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -556,8 +551,7 @@ void color_vector(level_type * level, int id_a, int colors_in_each_dim, int icol
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){
@@ -601,8 +595,7 @@ void random_vector(level_type * level, int id_a){
   int block;
 
 #ifdef USE_AGENCY
-  agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-    block = self.index();
+  parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){

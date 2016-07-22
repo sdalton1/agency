@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -17,8 +19,7 @@ void apply_op(level_type * level, int Ax_id, int x_id, double a, double b){
   double _timeStart = getTime();
 
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level->num_my_blocks), [&](agency::parallel_agent& self){
-      block = self.index();
+    parallel_for(level->num_my_blocks, [&](int block){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, block, level->num_my_blocks)
     for(block = 0; block < level->num_my_blocks; block++){

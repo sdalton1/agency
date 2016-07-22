@@ -1,3 +1,5 @@
+#include "../parallel_for.h"
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Samuel Williams
 // SWWilliams@lbl.gov
@@ -82,8 +84,7 @@ void exchange_boundary(level_type * level, int id, int shape){
   if(level->exchange_ghosts[shape].num_blocks[1]){
     _timeStart = getTime();
 #ifdef USE_AGENCY
-    agency::bulk_invoke(agency::par(level->exchange_ghosts[shape].num_blocks[1]), [&](agency::parallel_agent& self){
-      buffer = self.index();
+    parallel_for(level->exchange_ghosts[shape].num_blocks[1], [&](int buffer){
 #else
     PRAGMA_THREAD_ACROSS_BLOCKS(level, buffer, level->exchange_ghosts[shape].num_blocks[1])
     for(buffer = 0; buffer < level->exchange_ghosts[shape].num_blocks[1]; buffer++){
