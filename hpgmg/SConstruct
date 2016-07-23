@@ -16,6 +16,7 @@ if env['method'] == 'agency':
   env.Append(CPPDEFINES = ['USE_AGENCY'])
   env.Append(LIBS       = ['pthread'])
 elif env['method'] == 'agency-openmp':
+  env.Append(CPPDEFINES = ['USE_AGENCY'])
   env.Append(CPPDEFINES = ['USE_AGENCY_OMP_EXECUTOR'])
   env.Append(LIBS       = ['pthread'])
 
