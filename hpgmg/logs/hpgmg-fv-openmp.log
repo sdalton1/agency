@@ -1,0 +1,248 @@
+
+
+********************************************************************************
+***                            HPGMG-FV Benchmark                            ***
+********************************************************************************
+1 MPI Tasks of 8 threads
+
+
+===== Benchmark setup ==========================================================
+
+attempting to create a 80^3 level from 125 x 16^3 boxes distributed among 1 tasks...
+  boundary condition = BC_DIRICHLET
+  Decomposing level via Z-mort ordering... done
+  Allocating vectors... done
+  Calculating boxes per process... target=125.000, max=125
+  Creating Poisson (a=0.000000, b=1.000000) test problem
+  calculating D^{-1} exactly for level h=1.250000e-02 using 64 colors...  done
+  estimating  lambda_max... <2.223357212202443e+00
+
+attempting to create a 40^3 level from 125 x 8^3 boxes distributed among 1 tasks...
+  boundary condition = BC_DIRICHLET
+  Decomposing level via Z-mort ordering... done
+  Allocating vectors... done
+  Calculating boxes per process... target=125.000, max=125
+
+attempting to create a 20^3 level from 125 x 4^3 boxes distributed among 1 tasks...
+  boundary condition = BC_DIRICHLET
+  Decomposing level via Z-mort ordering... done
+  Allocating vectors... done
+  Calculating boxes per process... target=125.000, max=125
+
+attempting to create a 10^3 level from 125 x 2^3 boxes distributed among 1 tasks...
+  boundary condition = BC_DIRICHLET
+  Decomposing level via Z-mort ordering... done
+  Allocating vectors... done
+  Calculating boxes per process... target=125.000, max=125
+
+attempting to create a 5^3 level from 1 x 5^3 boxes distributed among 1 tasks...
+  boundary condition = BC_DIRICHLET
+  Decomposing level via Z-mort ordering... done
+  Allocating vectors... done
+  Calculating boxes per process... target=1.000, max=1
+
+  Building restriction and interpolation lists... done
+
+  calculating D^{-1} exactly for level h=2.500000e-02 using 64 colors...  done
+  estimating  lambda_max... <2.223572239000527e+00
+  calculating D^{-1} exactly for level h=5.000000e-02 using 64 colors...  done
+  estimating  lambda_max... <2.225020170485665e+00
+  calculating D^{-1} exactly for level h=1.000000e-01 using 64 colors...  done
+  estimating  lambda_max... <2.169718081932122e+00
+  calculating D^{-1} exactly for level h=2.000000e-01 using 64 colors...  done
+  estimating  lambda_max... <2.228820388302748e+00
+
+
+
+===== Warming up by running 10 solves ==========================================
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.088960 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.092702 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.142246 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.120189 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.095190 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.115537 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.091165 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.089256 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.108157 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.090960 seconds)
+
+
+===== Running 10 solves ========================================================
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.117886 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.112727 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.159786 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.103963 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.123678 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.091204 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.087211 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.088706 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.093494 seconds)
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.085368 seconds)
+
+
+===== Timing Breakdown =========================================================
+
+
+level                                0            1            2            3            4 
+level dimension                   80^3         40^3         20^3         10^3          5^3 
+box dimension                     16^3          8^3          4^3          2^3          5^3        total
+------------------        ------------ ------------ ------------ ------------ ------------ ------------ 
+smooth                        0.047018     0.010660     0.001963     0.000672     0.000000     0.060313
+residual                      0.008509     0.000879     0.000177     0.000052     0.000032     0.009650
+applyOp                       0.000000     0.000000     0.000000     0.000000     0.000298     0.000298
+BLAS1                         0.002548     0.000688     0.000061     0.000051     0.000293     0.003641
+BLAS3                         0.000000     0.000000     0.000000     0.000000     0.000000     0.000000
+Boundary Conditions           0.005242     0.002932     0.000872     0.000645     0.000573     0.010263
+Restriction                   0.001585     0.000541     0.000330     0.000170     0.000000     0.002626
+  local restriction           0.001585     0.000540     0.000330     0.000170     0.000000     0.002625
+Interpolation                 0.003349     0.000494     0.000075     0.000057     0.000000     0.003976
+  local interpolation         0.003349     0.000493     0.000074     0.000057     0.000000     0.003973
+Ghost Zone Exchange           0.009879     0.004346     0.001066     0.000882     0.000003     0.016176
+  local exchange              0.009875     0.004342     0.001063     0.000879     0.000000     0.016158
+------------------        ------------ ------------ ------------ ------------ ------------ ------------ 
+Total by level                0.079161     0.019160     0.004514     0.002371     0.001185     0.106391
+
+   Total time in MGBuild      0.110872 seconds
+   Total time in MGSolve      0.106402 seconds
+      number of v-cycles             1
+Bottom solver iterations            31
+
+
+
+
+===== Warming up by running 10 solves ==========================================
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.015973 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.013962 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.016336 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.013722 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.011801 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.013332 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.023158 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.014025 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.012821 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.013692 seconds)
+
+
+===== Running 10 solves ========================================================
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.031602 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.013674 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.014269 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.013736 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.012058 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.014233 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.012967 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.034665 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.014907 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.014189 seconds)
+
+
+===== Timing Breakdown =========================================================
+
+
+level                                0            1            2            3 
+level dimension                   40^3         20^3         10^3          5^3 
+box dimension                      8^3          4^3          2^3          5^3        total
+------------------        ------------ ------------ ------------ ------------ ------------ 
+smooth                        0.004408     0.002135     0.000549     0.000000     0.007092
+residual                      0.000941     0.000155     0.000039     0.000025     0.001160
+applyOp                       0.000000     0.000000     0.000000     0.000238     0.000238
+BLAS1                         0.000815     0.000030     0.000030     0.000234     0.001109
+BLAS3                         0.000000     0.000000     0.000000     0.000000     0.000000
+Boundary Conditions           0.000627     0.001449     0.000488     0.000551     0.003115
+Restriction                   0.000510     0.000326     0.000177     0.000000     0.001013
+  local restriction           0.000510     0.000326     0.000176     0.000000     0.001012
+Interpolation                 0.000485     0.000139     0.000026     0.000000     0.000650
+  local interpolation         0.000484     0.000139     0.000026     0.000000     0.000649
+Ghost Zone Exchange           0.001292     0.001419     0.000673     0.000002     0.003386
+  local exchange              0.001290     0.001417     0.000670     0.000000     0.003377
+------------------        ------------ ------------ ------------ ------------ ------------ 
+Total by level                0.009162     0.005550     0.001857     0.001052     0.017621
+
+   Total time in MGBuild      0.110872 seconds
+   Total time in MGSolve      0.017630 seconds
+      number of v-cycles             1
+Bottom solver iterations            25
+
+
+
+
+===== Warming up by running 10 solves ==========================================
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.003731 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002709 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.007575 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.003154 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002591 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002575 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.004351 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002708 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002586 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.006134 seconds)
+
+
+===== Running 10 solves ========================================================
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.005303 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002735 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002586 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002584 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.003757 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.005264 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002595 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002677 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002963 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.002586 seconds)
+
+
+===== Timing Breakdown =========================================================
+
+
+level                                0            1            2 
+level dimension                   20^3         10^3          5^3 
+box dimension                      4^3          2^3          5^3        total
+------------------        ------------ ------------ ------------ ------------ 
+smooth                        0.000508     0.000455     0.000000     0.000963
+residual                      0.000113     0.000024     0.000016     0.000153
+applyOp                       0.000000     0.000000     0.000172     0.000172
+BLAS1                         0.000193     0.000009     0.000165     0.000367
+BLAS3                         0.000000     0.000000     0.000000     0.000000
+Boundary Conditions           0.000223     0.000330     0.000368     0.000921
+Restriction                   0.000007     0.000006     0.000000     0.000013
+  local restriction           0.000007     0.000006     0.000000     0.000013
+Interpolation                 0.000051     0.000027     0.000000     0.000078
+  local interpolation         0.000051     0.000027     0.000000     0.000078
+Ghost Zone Exchange           0.000317     0.000372     0.000001     0.000691
+  local exchange              0.000316     0.000371     0.000000     0.000687
+------------------        ------------ ------------ ------------ ------------ 
+Total by level                0.001416     0.001161     0.000724     0.003301
+
+   Total time in MGBuild      0.110872 seconds
+   Total time in MGSolve      0.003305 seconds
+      number of v-cycles             1
+Bottom solver iterations            18
+
+
+
+
+===== Performance Summary ======================================================
+  h=1.250000000000000e-02  DOF=5.120000000000000e+05  time=0.106402  DOF/s=4.812e+06  MPI=1  OMP=8
+  h=2.500000000000000e-02  DOF=6.400000000000000e+04  time=0.017630  DOF/s=3.630e+06  MPI=1  OMP=8
+  h=5.000000000000000e-02  DOF=8.000000000000000e+03  time=0.003305  DOF/s=2.421e+06  MPI=1  OMP=8
+
+
+===== Richardson error analysis ================================================
+FMGSolve... f-cycle     norm=3.716908038631228e-05  rel=3.797908154733313e-05  done (0.089327 seconds)
+FMGSolve... f-cycle     norm=4.125351388060139e-04  rel=4.494006467479132e-04  done (0.012931 seconds)
+FMGSolve... f-cycle     norm=1.411243492058234e-03  rel=1.968759532136179e-03  done (0.018051 seconds)
+  h=1.250000000000000e-02  ||error||=1.317181115755017e-06
+  order=3.365
+
+
+===== Deallocating memory ======================================================
+attempting to free the restriction and interpolation lists... done
+attempting to free the     5^3 level... done
+attempting to free the    10^3 level... done
+attempting to free the    20^3 level... done
+attempting to free the    40^3 level... done
+attempting to free the    80^3 level... done
+
+
+===== Done =====================================================================
